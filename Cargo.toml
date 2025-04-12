@@ -1,0 +1,14 @@
+[package]
+name = "chaikin"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# For window management and graphics
+minifb = "0.24"
+# For vector math
+nalgebra = "0.32.2"
+# For handling colors
+palette = "0.7.3"
+# For timing
+instant = "0.1"
