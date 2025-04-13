@@ -1,5 +1,5 @@
 use nalgebra::Point2;
-use crate::types::{Point, AnimationState};
+use crate::types::{Point};
 
 /// Implements Chaikin's curve algorithm for smooth curve generation
 pub struct ChaikinAlgorithm {
@@ -20,11 +20,13 @@ impl ChaikinAlgorithm {
     }
 
     /// Creates a new instance with custom ratios
+    #[allow(dead_code)]
     pub fn with_ratios(q_ratio: f32, r_ratio: f32) -> Self {
         Self { q_ratio, r_ratio }
     }
 
     /// Calculate one step of Chaikin's algorithm
+    #[allow(dead_code)]
     pub fn calculate_step(&self, points: &[Point]) -> Vec<Point> {
         // Special cases handling
         match points.len() {
@@ -69,6 +71,7 @@ impl ChaikinAlgorithm {
     
     /// Calculate all steps of Chaikin's algorithm up to the specified step
     /// Returns a vector containing all the intermediate points for each step
+    #[allow(dead_code)]
     pub fn calculate_steps(&self, initial_points: &[Point], steps: usize) -> Vec<Vec<Point>> {
         // Special cases handling
         match initial_points.len() {

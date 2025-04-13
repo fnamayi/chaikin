@@ -1,4 +1,4 @@
-use minifb::{Window, WindowOptions, Key, MouseButton, MouseMode, KeyRepeat, Icon};
+use minifb::{Window, WindowOptions, Key, MouseButton, MouseMode, KeyRepeat};
 use nalgebra::Point2;
 use crate::types::{WindowState, AnimationState, Point};
 use std::time::{Duration, Instant};
@@ -117,7 +117,7 @@ impl WindowManager {
         if self.state.animation_state == AnimationState::Drawing {
             if let Some((x, y)) = self.window.get_mouse_pos(MouseMode::Discard) {
                 if self.window.get_mouse_down(MouseButton::Left) {
-                    let point = Point2::new(x as f32, y as f32);
+                    let point = Point2::new(x, y);
                     mouse_clicked = true;
                     if !self.state.points.iter().any(|p| *p == point) {
                         self.add_point(x, y);
