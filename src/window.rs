@@ -1,6 +1,6 @@
 use minifb::{Window, WindowOptions, Key, MouseButton, MouseMode};
 use nalgebra::Point2;
-use crate::types::{WindowState, AnimationState};
+use crate::types::{WindowState, AnimationState, Point};
 use std::time::{Duration};
 use crate::window::toast::Toast;
 
@@ -57,6 +57,25 @@ impl WindowManager {
             buffer: vec![0; width * height],
             toast: Toast::new(),
         }
+    }
+
+    /// Adds a point to be drawn in the window at the given coordinate
+    fn add_point(&mut self, x: f32, y: f32) {
+        let point = Point::new(x, y);
+        self.state.points.push(point);
+        // The toast will be shown if the user didn't have enough points for chaikin,
+        // but a new point was just added; maybe we already have enough points
+        self.toast.dismiss();
+        self.redraw();
+    }
+
+    /// Re-reads the state of the window and re-renders all the points,
+    /// lines, and the toast if active
+    fn redraw(&mut self) {
+        self.clear_buffer();
+        // self.draw_lines();
+        // self.draw_points();
+        // self.draw_toast();
     }
 
     pub fn handle_input(&mut self) -> bool {
