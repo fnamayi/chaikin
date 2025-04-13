@@ -1,3 +1,5 @@
 /target
 **/*.rs.bk
 Cargo.lock
+# Jetbrains IDE configuration files
+.idea
