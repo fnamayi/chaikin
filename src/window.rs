@@ -145,9 +145,9 @@ impl WindowManager {
     pub fn update(&mut self) {
         if self.state.animation_state == AnimationState::Animating {
             if self.last_call.elapsed() > Duration::from_secs(1) {
+                println!("animation step: {}", self.state.current_step + 1);
                 self.state.current_step = (self.state.current_step + 1) % MAX_STEPS;
                 self.last_call = Instant::now();
-                println!("animation step: {}", self.state.current_step + 1);
             }
         }
     }
