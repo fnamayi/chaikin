@@ -145,7 +145,7 @@ impl WindowManager {
             if self.last_call.elapsed() > Duration::from_secs(1) {
                 self.state.current_step = (self.state.current_step + 1) % MAX_STEPS;
                 self.last_call = Instant::now();
-                println!("animation time elapsed: {} seconds", self.state.current_step);
+                println!("animation step: {}", self.state.current_step + 1);
             }
         }
     }
