@@ -1,4 +1,4 @@
-use minifb::{Window, WindowOptions, Key, MouseButton, MouseMode};
+use minifb::{Window, WindowOptions, Key, MouseButton, MouseMode, KeyRepeat};
 use nalgebra::Point2;
 use crate::types::{WindowState, AnimationState, Point};
 use std::time::{Duration};
@@ -81,6 +81,12 @@ impl WindowManager {
     pub fn handle_input(&mut self) -> bool {
         if !self.window.is_open() || self.window.is_key_down(Key::Escape) {
             return false;
+        }
+
+        let window = &self.window;
+        if (window.is_key_down(Key::LeftCtrl) || window.is_key_down(Key::RightCtrl)) &&
+            window.is_key_pressed(Key::R, KeyRepeat::No) {
+            self.reset();
         }
 
         if self.state.animation_state == AnimationState::Drawing {
