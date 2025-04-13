@@ -71,10 +71,10 @@ impl WindowManager {
 
     /// Re-reads the state of the window and re-renders all the points,
     /// lines, and the toast if active
-    fn redraw(&mut self) {
+    pub fn redraw(&mut self) {
         self.clear_buffer();
         // self.draw_lines();
-        // self.draw_points();
+        self.draw_points();
         // self.draw_toast();
     }
 
@@ -88,7 +88,8 @@ impl WindowManager {
                 if self.window.get_mouse_down(MouseButton::Left) {
                     let point = Point2::new(x as f32, y as f32);
                     if !self.state.points.iter().any(|p| *p == point) {
-                        self.state.points.push(point);
+                        // self.state.points.push(point);
+                        self.add_point(x, y);
                     }
                 }
             }
@@ -269,7 +270,7 @@ impl WindowManager {
 
     /// Draws all points defined in the window
     pub fn draw_points(&mut self) {
-        for point in &self.state.points {
+        for point in &self.state.points.clone() {
             self.draw_circle_aa(point.x, point.y, POINT_RADIUS, POINT_COLOR);
         }
     }
