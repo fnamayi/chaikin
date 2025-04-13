@@ -12,3 +12,4 @@ nalgebra = "0.32.2"
 palette = "0.7.3"
 # For timing
 instant = "0.1"
+rusttype = "0.9.3"

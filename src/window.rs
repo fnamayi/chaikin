@@ -3,6 +3,7 @@ use nalgebra::Point2;
 use crate::types::{WindowState, AnimationState, Point};
 use std::time::{Duration};
 use crate::window::toast::Toast;
+use rusttype::{Font, Scale, point, PositionedGlyph};
 
 mod toast;
 
@@ -28,7 +29,9 @@ pub struct WindowManager {
     state: WindowState,
     buffer: Vec<u32>,
     /// The current toast message, shown if active
-    toast: Toast
+    toast: Toast,
+    /// The application's text font
+    font: Font<'static>,
 }
 
 impl WindowManager {
@@ -43,7 +46,12 @@ impl WindowManager {
             },
         ).unwrap_or_else(|e| panic!("Failed to create window: {}", e));
 
-        window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
+        window.limit_update_rate(Some(Duration::from_micros(16600)));
+
+        // Load font
+        let font_data = include_bytes!("../assets/Roboto-VariableFont_wdth_wght.ttf");
+        let font = Font::try_from_bytes(font_data as &[u8])
+            .expect("Error loading font");
 
         Self {
             window,
@@ -56,6 +64,7 @@ impl WindowManager {
             },
             buffer: vec![0; width * height],
             toast: Toast::new(),
+            font,
         }
     }
 
@@ -75,7 +84,7 @@ impl WindowManager {
         self.clear_buffer();
         self.draw_lines();
         self.draw_points();
-        // self.draw_toast();
+        self.draw_toast();
     }
 
     pub fn handle_input(&mut self) -> bool {
@@ -83,11 +92,14 @@ impl WindowManager {
             return false;
         }
 
-        let window = &self.window;
-        if (window.is_key_down(Key::LeftCtrl) || window.is_key_down(Key::RightCtrl)) &&
-            window.is_key_pressed(Key::R, KeyRepeat::No) {
+        if (self.window.is_key_down(Key::LeftCtrl) || self.window.is_key_down(Key::RightCtrl)) &&
+            self.window.is_key_pressed(Key::R, KeyRepeat::No) {
             self.reset();
         }
+
+        let delete_pressed = self.window.is_key_pressed(Key::Delete, KeyRepeat::No);
+        // Check if toast should be dismissed
+        self.check_toast_dismiss(false, delete_pressed);
 
         if self.state.animation_state == AnimationState::Drawing {
             if let Some((x, y)) = self.window.get_mouse_pos(MouseMode::Discard) {
@@ -102,9 +114,14 @@ impl WindowManager {
         }
 
         if self.window.is_key_pressed(Key::Enter, minifb::KeyRepeat::No) {
-            if !self.state.points.is_empty() {
+            if self.state.points.len() < 2 {
+                self.toast.show("You did not select enough points");
+                self.draw_toast();
+            } else {
                 self.state.animation_state = AnimationState::Animating;
                 self.state.current_step = 0;
+                // TODO: callback logic
+                // callback(self, &self.points.clone());
             }
         }
 
@@ -170,6 +187,16 @@ impl WindowManager {
         let b = (b1 * alpha + b2 * (1.0 - alpha)) as u32;
 
         self.buffer[index] = (r << 16) | (g << 8) | b;
+    }
+
+    /// Draw a given pixel with the target color, without antialiasing
+    fn draw_pixel(&mut self, x: i32, y: i32, color: u32) {
+        let width = self.state.buffer_width;
+        let height = self.state.buffer_height;
+
+        if x >= 0 && x < width as i32 && y >= 0 && y < height as i32 {
+            self.buffer[y as usize * width + x as usize] = color;
+        }
     }
 
     /// Draw a circle centered at the given coordinates, and radius, with the given color
@@ -269,6 +296,100 @@ impl WindowManager {
                 self.draw_pixel_aa(x, intery.floor() as i32 + 1, color, intery - intery.floor());
                 intery += gradient;
             }
+        }
+    }
+
+    //=============== Text Drawing ========================
+
+    // Draw text using rusttype
+    fn draw_text(&mut self, x: i32, y: i32, text: &str, color: u32, size: f32) {
+        let scale = Scale::uniform(size);
+        let v_metrics = self.font.v_metrics(scale);
+        let offset = point(x as f32, y as f32 + v_metrics.ascent);
+
+        // Layout the glyphs in a line with 1 pixel padding
+        let glyphs: Vec<PositionedGlyph> = self.font
+            .layout(text, scale, offset)
+            .collect();
+
+        let width = self.state.buffer_width;
+        let height = self.state.buffer_height;
+
+        // Draw the glyphs
+        for glyph in glyphs {
+            if let Some(bounding_box) = glyph.pixel_bounding_box() {
+                glyph.draw(|rx, ry, v| {
+                    let x = rx + bounding_box.min.x as u32;
+                    let y = ry + bounding_box.min.y as u32;
+
+                    if x < width as u32 && y < height as u32 {
+                        // Convert alpha value to 0-1 range
+                        let alpha = v;
+
+                        let pixel_x = x as i32;
+                        let pixel_y = y as i32;
+
+                        self.draw_pixel_aa(pixel_x, pixel_y, color, alpha);
+                    }
+                });
+            }
+        }
+    }
+
+    // Text width calculation for centering
+    fn text_width(&self, text: &str, size: f32) -> f32 {
+        let scale = Scale::uniform(size);
+        let v_metrics = self.font.v_metrics(scale);
+        let offset = point(0.0, v_metrics.ascent);
+
+        let glyphs: Vec<PositionedGlyph> = self.font
+            .layout(text, scale, offset)
+            .collect();
+
+        if let Some(last_glyph) = glyphs.last() {
+            if let Some(bounding_box) = last_glyph.pixel_bounding_box() {
+                return bounding_box.max.x as f32;
+            }
+        }
+
+        0.0
+    }
+
+    fn draw_toast(&mut self) {
+        let width = self.state.buffer_width;
+        let height = self.state.buffer_height;
+
+        if !self.toast.is_showing() {
+            return;
+        }
+
+        let msg = &self.toast.message.clone();
+        let font_size = 16.0;
+        let text_width = self.text_width(msg, font_size);
+        let toast_width = (text_width + 20.0) as usize;
+        let toast_height = 40;
+        let x_start = (width - toast_width) / 2;
+        let y_start = height - toast_height - 20;
+
+        // Draw toast background
+        for y in y_start..(y_start + toast_height) {
+            for x in x_start..(x_start + toast_width) {
+                if x < width && y < height {
+                    self.draw_pixel(x as i32, y as i32, TOAST_BG_COLOR);
+                }
+            }
+        }
+
+        // Draw toast text
+        let text_x = x_start as i32 + 10;
+        let text_y = y_start as i32 + ((toast_height - font_size as usize) / 2) as i32;
+        self.draw_text(text_x, text_y, msg, TOAST_TEXT_COLOR, font_size);
+    }
+
+    fn check_toast_dismiss(&mut self, mouse_clicked: bool, delete_pressed: bool) {
+        if self.toast.is_showing() && (mouse_clicked || delete_pressed) {
+            self.toast.dismiss();
+            self.redraw();
         }
     }
 
