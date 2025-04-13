@@ -18,7 +18,7 @@ const LINE_COLOR: u32 = 0x0055CCAA;
 /// We will be showing a toast message if the user hasn't yet included enough points for
 /// the chaikin algorithm points generation. This specifies for how long we'll show the
 /// toast before automatically hiding it
-const TOAST_DURATION: Duration = Duration::from_secs(3);
+const TOAST_DURATION: Duration = Duration::from_secs(8);
 /// The toasts background color. It is a shade of grey so that they are visible
 /// on the black window background
 const TOAST_BG_COLOR: u32 = 0x80333333;
@@ -113,19 +113,21 @@ impl WindowManager {
         }
 
         let delete_pressed = self.window.is_key_pressed(Key::Delete, KeyRepeat::No);
-        // Check if toast should be dismissed
-        self.check_toast_dismiss(false, delete_pressed);
-
+        let mut mouse_clicked = false;
         if self.state.animation_state == AnimationState::Drawing {
             if let Some((x, y)) = self.window.get_mouse_pos(MouseMode::Discard) {
                 if self.window.get_mouse_down(MouseButton::Left) {
                     let point = Point2::new(x as f32, y as f32);
+                    mouse_clicked = true;
                     if !self.state.points.iter().any(|p| *p == point) {
                         self.add_point(x, y);
                     }
                 }
             }
         }
+
+        // Check if toast should be dismissed
+        self.check_toast_dismiss(mouse_clicked, delete_pressed);
 
         if self.window.is_key_pressed(Key::Enter, KeyRepeat::No) {
             if self.state.points.len() < 2 {
