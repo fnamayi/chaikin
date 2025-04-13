@@ -265,6 +265,14 @@ impl WindowManager {
         }
     }
 
+    //=============== Window State Drawing ========================
+
+    /// Draws all points defined in the window
+    pub fn draw_points(&mut self) {
+        for point in &self.state.points {
+            self.draw_circle_aa(point.x, point.y, POINT_RADIUS, POINT_COLOR);
+        }
+    }
 }
 
 #[cfg(test)]
