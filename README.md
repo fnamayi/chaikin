@@ -4,7 +4,7 @@ The project implements Chaikin's curve algorithm as an interactive animation. Us
 
 ## Team Roles
 
-### steoiro: Window Management and User Input
+### Done: Window Management and User Input
 - Responsible for: `window.rs`
 - Handles window creation, events, input processing
 - Manages user interactions (mouse clicks, keyboard)
@@ -14,7 +14,7 @@ The project implements Chaikin's curve algorithm as an interactive animation. Us
   - Process keyboard events (Enter, Escape)
   - Implement the drawing primitives (pixels, lines, circles)
 
-### Person 2: Chaikin's Algorithm 
+### To be implemented: Chaikin's Algorithm 
 - Responsible for: `algorithm.rs`
 - Implements the core curve generation algorithm
 - Tasks:
@@ -23,7 +23,7 @@ The project implements Chaikin's curve algorithm as an interactive animation. Us
   - Optimize the algorithm for smooth performance
   - Handle edge cases (single point, two points, etc.)
 
-### Person 3: Rendering and Animation
+### To be implemented: Rendering and Animation
 - Responsible for: `renderer.rs`
 - Handles the visual representation and animation
 - Tasks:
