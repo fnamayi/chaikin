@@ -2,6 +2,9 @@ use minifb::{Window, WindowOptions, Key, MouseButton, MouseMode};
 use nalgebra::Point2;
 use crate::types::{WindowState, AnimationState};
 use std::time::{Duration};
+use crate::window::toast::Toast;
+
+mod toast;
 
 const MAX_STEPS: usize = 7;
 /// When drawing points, which are circles, this specifies the radius
@@ -24,6 +27,8 @@ pub struct WindowManager {
     window: Window,
     state: WindowState,
     buffer: Vec<u32>,
+    /// The current toast message, shown if active
+    toast: Toast
 }
 
 impl WindowManager {
@@ -50,6 +55,7 @@ impl WindowManager {
                 buffer_height: height,
             },
             buffer: vec![0; width * height],
+            toast: Toast::new(),
         }
     }
 
