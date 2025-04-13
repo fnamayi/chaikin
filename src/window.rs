@@ -130,6 +130,141 @@ impl WindowManager {
         self.toast.dismiss();
         self.clear_buffer();
     }
+
+    //==================== Drawing Utilities =====================
+
+    /// Draws the given color at the given pixel in the window buffer using linear alpha blending.
+    /// This is a common technique, that forms the basis for antialiasing techniques such as
+    /// Xiaolin Wu's line algorithm
+    /// It blends a new color (color) with an existing one in the buffer (bg) at pixel (x, y)
+    /// based on an alpha value (opacity).
+    fn draw_pixel_aa(&mut self, x: i32, y: i32, color: u32, alpha: f32) {
+        let width = self.state.buffer_width;
+        let height = self.state.buffer_height;
+        if x < 0 || x >= width as i32 || y < 0 || y >= height as i32 {
+            return;
+        }
+
+        let index = y as usize * width + x as usize;
+        let bg = self.buffer[index];
+
+        // Extract color components
+        let r1 = ((color >> 16) & 0xFF) as f32;
+        let g1 = ((color >> 8) & 0xFF) as f32;
+        let b1 = (color & 0xFF) as f32;
+
+        let r2 = ((bg >> 16) & 0xFF) as f32;
+        let g2 = ((bg >> 8) & 0xFF) as f32;
+        let b2 = (bg & 0xFF) as f32;
+
+        // Blend colors
+        let r = (r1 * alpha + r2 * (1.0 - alpha)) as u32;
+        let g = (g1 * alpha + g2 * (1.0 - alpha)) as u32;
+        let b = (b1 * alpha + b2 * (1.0 - alpha)) as u32;
+
+        self.buffer[index] = (r << 16) | (g << 8) | b;
+    }
+
+    /// Draw a circle centered at the given coordinates, and radius, with the given color
+    /// with antialiasing enabled
+    fn draw_circle_aa(&mut self, center_x: f32, center_y: f32, radius: f32, color: u32) {
+        let width = self.state.buffer_width;
+        let height = self.state.buffer_height;
+
+        let x0 = (center_x - radius - 1.0).max(0.0) as i32;
+        let y0 = (center_y - radius - 1.0).max(0.0) as i32;
+        let x1 = (center_x + radius + 1.0).min(width as f32 - 1.0) as i32;
+        let y1 = (center_y + radius + 1.0).min(height as f32 - 1.0) as i32;
+
+        for y in y0..=y1 {
+            for x in x0..=x1 {
+                let dx = x as f32 - center_x;
+                let dy = y as f32 - center_y;
+                let distance = (dx * dx + dy * dy).sqrt();
+
+                if distance <= radius + 1.0 {
+                    let alpha = if distance <= radius - 1.0 {
+                        1.0
+                    } else {
+                        let t = distance - (radius - 1.0);
+                        1.0 - t.min(1.0)
+                    };
+
+                    self.draw_pixel_aa(x, y, color, alpha);
+                }
+            }
+        }
+    }
+
+    /// Draws a line between the two points, with the target color using
+    /// Xiaolin Wu's line algorithm, with antialiasing enabled
+    fn draw_line_aa(&mut self, mut x0: f32, mut y0: f32, mut x1: f32, mut y1: f32, color: u32) {
+        // Determine if the line is steep
+        let steep = (y1 - y0).abs() > (x1 - x0).abs();
+
+        if steep {
+            std::mem::swap(&mut x0, &mut y0);
+            std::mem::swap(&mut x1, &mut y1);
+        }
+
+        // Make sure x0 <= x1
+        if x0 > x1 {
+            std::mem::swap(&mut x0, &mut x1);
+            std::mem::swap(&mut y0, &mut y1);
+        }
+
+        let dx = x1 - x0;
+        let dy = y1 - y0;
+        let gradient = if dx.abs() < 1e-6 { 1.0 } else { dy / dx };
+
+        // Handle first endpoint
+        let xend = x0.round();
+        let yend = y0 + gradient * (xend - x0);
+        let xgap = 1.0 - (x0 + 0.5 - xend).abs();
+        let xpxl1 = xend as i32;
+        let ypxl1 = yend.floor() as i32;
+
+        if steep {
+            self.draw_pixel_aa(ypxl1, xpxl1, color, (1.0 - (yend - yend.floor())) * xgap);
+            self.draw_pixel_aa(ypxl1 + 1, xpxl1, color, (yend - yend.floor()) * xgap);
+        } else {
+            self.draw_pixel_aa(xpxl1, ypxl1, color, (1.0 - (yend - yend.floor())) * xgap);
+            self.draw_pixel_aa(xpxl1, ypxl1 + 1, color, (yend - yend.floor()) * xgap);
+        }
+
+        let mut intery = yend + gradient;
+
+        // Handle second endpoint
+        let xend = x1.round();
+        let yend = y1 + gradient * (xend - x1);
+        let xgap = (x1 + 0.5 - xend).abs();
+        let xpxl2 = xend as i32;
+        let ypxl2 = yend.floor() as i32;
+
+        if steep {
+            self.draw_pixel_aa(ypxl2, xpxl2, color, (1.0 - (yend - yend.floor())) * xgap);
+            self.draw_pixel_aa(ypxl2 + 1, xpxl2, color, (yend - yend.floor()) * xgap);
+        } else {
+            self.draw_pixel_aa(xpxl2, ypxl2, color, (1.0 - (yend - yend.floor())) * xgap);
+            self.draw_pixel_aa(xpxl2, ypxl2 + 1, color, (yend - yend.floor()) * xgap);
+        }
+
+        // Main loop
+        if steep {
+            for x in (xpxl1 + 1)..xpxl2 {
+                self.draw_pixel_aa(intery.floor() as i32, x, color, 1.0 - (intery - intery.floor()));
+                self.draw_pixel_aa(intery.floor() as i32 + 1, x, color, intery - intery.floor());
+                intery += gradient;
+            }
+        } else {
+            for x in (xpxl1 + 1)..xpxl2 {
+                self.draw_pixel_aa(x, intery.floor() as i32, color, 1.0 - (intery - intery.floor()));
+                self.draw_pixel_aa(x, intery.floor() as i32 + 1, color, intery - intery.floor());
+                intery += gradient;
+            }
+        }
+    }
+
 }
 
 #[cfg(test)]
