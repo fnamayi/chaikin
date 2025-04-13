@@ -73,7 +73,7 @@ impl WindowManager {
     /// lines, and the toast if active
     pub fn redraw(&mut self) {
         self.clear_buffer();
-        // self.draw_lines();
+        self.draw_lines();
         self.draw_points();
         // self.draw_toast();
     }
@@ -272,6 +272,20 @@ impl WindowManager {
     pub fn draw_points(&mut self) {
         for point in &self.state.points.clone() {
             self.draw_circle_aa(point.x, point.y, POINT_RADIUS, POINT_COLOR);
+        }
+    }
+
+    /// Draws lines between all points defined in the window
+    fn draw_lines(&mut self) {
+        self.draw_lines_between(&self.state.points.clone());
+    }
+
+    /// Utility function to draw lines between given points in the window
+    fn draw_lines_between(&mut self, points: &[Point]) {
+        for i in 1..points.len() {
+            let p1 = points[i - 1];
+            let p2 = points[i];
+            self.draw_line_aa(p1.x, p1.y, p2.x, p2.y, LINE_COLOR);
         }
     }
 }
