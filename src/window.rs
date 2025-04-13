@@ -1,11 +1,12 @@
-use minifb::{Window, WindowOptions, Key, MouseButton, MouseMode, KeyRepeat};
+use minifb::{Window, WindowOptions, Key, MouseButton, MouseMode, KeyRepeat, Icon};
 use nalgebra::Point2;
 use crate::types::{WindowState, AnimationState, Point};
-use std::time::{Duration};
+use std::time::{Duration, Instant};
 use crate::window::toast::Toast;
 use rusttype::{Font, Scale, point, PositionedGlyph};
 
 mod toast;
+mod algorithm;
 
 const MAX_STEPS: usize = 7;
 /// When drawing points, which are circles, this specifies the radius
@@ -32,6 +33,8 @@ pub struct WindowManager {
     toast: Toast,
     /// The application's text font
     font: Font<'static>,
+    /// The instant when the last animation frame was made
+    last_call: Instant,
 }
 
 impl WindowManager {
@@ -65,6 +68,7 @@ impl WindowManager {
             buffer: vec![0; width * height],
             toast: Toast::new(),
             font,
+            last_call: Instant::now(),
         }
     }
 
@@ -81,10 +85,21 @@ impl WindowManager {
     /// Re-reads the state of the window and re-renders all the points,
     /// lines, and the toast if active
     pub fn redraw(&mut self) {
+        if self.state.animation_state == AnimationState::Drawing {
+            self.clear_buffer();
+            self.draw_lines();
+            self.draw_points();
+            self.draw_toast();
+            return;
+        }
+
+        // We are animating
+        let paths = algorithm::ChaikinAlgorithm::new()
+            .get_step_points(&self.state.points, self.state.current_step);
+
         self.clear_buffer();
-        self.draw_lines();
+        self.draw_lines_between(&paths);
         self.draw_points();
-        self.draw_toast();
     }
 
     pub fn handle_input(&mut self) -> bool {
@@ -106,22 +121,19 @@ impl WindowManager {
                 if self.window.get_mouse_down(MouseButton::Left) {
                     let point = Point2::new(x as f32, y as f32);
                     if !self.state.points.iter().any(|p| *p == point) {
-                        // self.state.points.push(point);
                         self.add_point(x, y);
                     }
                 }
             }
         }
 
-        if self.window.is_key_pressed(Key::Enter, minifb::KeyRepeat::No) {
+        if self.window.is_key_pressed(Key::Enter, KeyRepeat::No) {
             if self.state.points.len() < 2 {
                 self.toast.show("You did not select enough points");
                 self.draw_toast();
             } else {
                 self.state.animation_state = AnimationState::Animating;
                 self.state.current_step = 0;
-                // TODO: callback logic
-                // callback(self, &self.points.clone());
             }
         }
 
@@ -130,7 +142,11 @@ impl WindowManager {
 
     pub fn update(&mut self) {
         if self.state.animation_state == AnimationState::Animating {
-            self.state.current_step = (self.state.current_step + 1) % MAX_STEPS;
+            if self.last_call.elapsed() > Duration::from_secs(1) {
+                self.state.current_step = (self.state.current_step + 1) % MAX_STEPS;
+                self.last_call = Instant::now();
+                println!("animation time elapsed: {} seconds", self.state.current_step);
+            }
         }
     }
 
@@ -148,6 +164,8 @@ impl WindowManager {
 
     /// Reset the window to it's initial startup state
     pub fn reset(&mut self) {
+        self.last_call = Instant::now();
+        self.toast = Toast::new();
         self.state.points.clear();
         self.state.animation_state = AnimationState::Drawing;
         self.state.current_step = 0;
@@ -356,12 +374,12 @@ impl WindowManager {
     }
 
     fn draw_toast(&mut self) {
-        let width = self.state.buffer_width;
-        let height = self.state.buffer_height;
-
         if !self.toast.is_showing() {
             return;
         }
+
+        let width = self.state.buffer_width;
+        let height = self.state.buffer_height;
 
         let msg = &self.toast.message.clone();
         let font_size = 16.0;
