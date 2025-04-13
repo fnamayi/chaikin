@@ -102,6 +102,15 @@ impl WindowManager {
             self.state.buffer_height,
         ).unwrap();
     }
+
+    /// Reset the window to it's initial startup state
+    pub fn reset(&mut self) {
+        self.state.points.clear();
+        self.state.animation_state = AnimationState::Drawing;
+        self.state.current_step = 0;
+        self.toast.dismiss();
+        self.clear_buffer();
+    }
 }
 
 #[cfg(test)]
