@@ -1,67 +1,94 @@
 use nalgebra::Point2;
 use crate::types::Point;
 
-/// Implements Chaikin's curve algorithm for smooth curve generation
+/// Smooths out a series of points to create a nice curve
 pub struct ChaikinAlgorithm {
+    /// First point ratio (how far the new point is along the line)
     q_ratio: f32,
+    /// Second point ratio (how far the other new point is along the line)
     r_ratio: f32,
 }
 
 impl ChaikinAlgorithm {
-    /// Creates a new instance of the Chaikin algorithm with default ratios
+    /// Creates a new smoothing tool with standard settings
     pub fn new() -> Self {
         Self {
-            q_ratio: 0.25,
-            r_ratio: 0.75,
+            q_ratio: 0.25, // Place first point 25% along each line segment
+            r_ratio: 0.75, // Place second point 75% along each line segment
         }
     }
 
-    /// Calculate one step of Chaikin's algorithm
+    /// Does one round of smoothing to make the curve nicer
+    ///
+    /// Input:
+    /// - A list of points (the original shape)
+    ///
+    /// Output:
+    /// - A new list of points (a smoother shape)
+    ///
+    /// Special cases:
+    /// - No points: returns an empty list
+    /// - One or two points: no changes, just return them
     pub fn calculate_step(&self, points: &[Point]) -> Vec<Point> {
         match points.len() {
-            0 => return Vec::new(),
-            1 | 2 => return points.to_vec(),
-            _ => {}
+            0 => return Vec::new(), // If no points, return an empty list
+            1 | 2 => return points.to_vec(), // If one or two points, no smoothing needed
+            _ => {} // If more than two points, start smoothing
         }
 
         let mut new_points = Vec::new();
+
+        // Keep the first point as is
         new_points.push(points[0]);
 
+        // Go through every pair of points and smooth the curve
         for i in 0..points.len() - 1 {
             let p0 = points[i];
             let p1 = points[i + 1];
 
+            // Find the first new point (closer to the first point)
             let q = Point2::new(
                 (1.0 - self.q_ratio) * p0.x + self.q_ratio * p1.x,
                 (1.0 - self.q_ratio) * p0.y + self.q_ratio * p1.y,
             );
 
+            // Find the second new point (closer to the second point)
             let r = Point2::new(
                 (1.0 - self.r_ratio) * p0.x + self.r_ratio * p1.x,
                 (1.0 - self.r_ratio) * p0.y + self.r_ratio * p1.y,
             );
 
+            // Add both new points to the list
             new_points.push(q);
             new_points.push(r);
         }
 
+        // Keep the last point as is
         new_points.push(*points.last().unwrap());
+
         new_points
     }
 
-    /// Get points for a specific step
-    /// If the step is out of range, returns the highest available step
+    /// Smooth the curve over several rounds
+    ///
+    /// Input:
+    /// - A list of points (the original shape)
+    /// - Number of smoothing steps to apply
+    ///
+    /// Output:
+    /// - The final smoothed points after the steps
     pub fn get_step_points(&self, initial_points: &[Point], step: usize) -> Vec<Point> {
+        // If step is 0 or not enough points, just return the original points
         if step == 0 || initial_points.len() <= 2 {
             return initial_points.to_vec();
         }
 
         let mut current_points = initial_points.to_vec();
         for _ in 0..step {
-            current_points = self.calculate_step(&current_points);
+            current_points = self.calculate_step(&current_points); // Smooth one step at a time
         }
 
-        current_points
+        current_points // Return the final smoothed points
     }
 }
 
