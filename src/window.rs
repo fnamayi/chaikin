@@ -1,8 +1,24 @@
 use minifb::{Window, WindowOptions, Key, MouseButton, MouseMode};
 use nalgebra::Point2;
 use crate::types::{WindowState, AnimationState};
+use std::time::{Duration};
 
 const MAX_STEPS: usize = 7;
+/// When drawing points, which are circles, this specifies the radius
+const POINT_RADIUS: f32 = 5.0;
+/// Draw the points with a shade of red
+const POINT_COLOR: u32 = 0x00FF5555;
+/// Draw the lines with a blue-green color mix
+const LINE_COLOR: u32 = 0x0055CCAA;
+/// We will be showing a toast message if the user hasn't yet included enough points for
+/// the chaikin algorithm points generation. This specifies for how long we'll show the
+/// toast before automatically hiding it
+const TOAST_DURATION: Duration = Duration::from_secs(3);
+/// The toasts background color. It is a shade of grey so that they are visible
+/// on the black window background
+const TOAST_BG_COLOR: u32 = 0x80333333;
+/// Accessible text color that is visible on the toast's background
+const TOAST_TEXT_COLOR: u32 = 0x00FFFFFF;
 
 pub struct WindowManager {
     window: Window,
