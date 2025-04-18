@@ -1,85 +1,52 @@
 # Chaikin's Algorithm Animation
 
-The project implements Chaikin's curve algorithm as an interactive animation. Users can place control points on a canvas, and the application will animate the steps of the curve generation process.
+An interactive visualization tool that demonstrates Chaikin's curve algorithm, allowing users to create smooth curves from control points through an animated process.
 
-## Team Roles
+## Features
 
-### Done: Window Management and User Input
-- Responsible for: `window.rs`
-- Handles window creation, events, input processing
-- Manages user interactions (mouse clicks, keyboard)
-- Tasks:
-  - Implement window creation and management
-  - Handle mouse input for point placement
-  - Process keyboard events (Enter, Escape)
-  - Implement the drawing primitives (pixels, lines, circles)
+- Interactive point placement with left-click
+- Real-time curve generation
+- Step-by-step animation visualization
+- Support for multiple iteration steps
+- Clean and intuitive interface
 
-### To be implemented: Chaikin's Algorithm 
-- Responsible for: `algorithm.rs`
-- Implements the core curve generation algorithm
-- Tasks:
-  - Implement Chaikin's curve generation algorithm
-  - Calculate points for each step of the animation
-  - Optimize the algorithm for smooth performance
-  - Handle edge cases (single point, two points, etc.)
+## Prerequisites
 
-### To be implemented: Rendering and Animation
-- Responsible for: `renderer.rs`
-- Handles the visual representation and animation
-- Tasks:
-  - Implement the drawing of points and lines
-  - Manage animation timing and transitions
-  - Add visual feedback elements
-  - Handle the animation loop and state
+- Rust (latest stable version)
+- Cargo package manager
 
-## Getting Started
+## Installation
 
 1. Clone the repository:
-```bash
-git clone https://learn.zone01kisumu.ke/git/steoiro/chaikin
-cd chaikin
-```
+   ```bash
+   git clone https://learn.zone01kisumu.ke/git/steoiro/chaikin
+   cd chaikin
+   ```
 
-2. Each team member should work on their assigned file.
+## Usage
 
-3. Run the project:
+Run the application:
 ```bash
 cargo run
 ```
 
-## How It Works
+## Algorithm Overview
 
-- Left-click on the canvas to place control points
-- Press Enter to start the animation (requires at least 3 points)
-- The animation will cycle through 7 steps of Chaikin's algorithm
-- Press Escape to quit
+Chaikin's algorithm generates a smooth curve by repeatedly replacing each line segment with two shorter ones, creating a progressively smoother curve with each iteration. The implementation uses 7 iterations for optimal smoothness.
 
-## Implementation Details
+## Building
 
-### Chaikin's Algorithm
-Chaikin's algorithm creates a smooth curve by:
-1. For each line segment between two control points, create two new points:
-   - One at 1/4 of the way along the segment
-   - One at 3/4 of the way along the segment
-2. Replace the original points with these new points
-3. Repeat for each step of the animation
-
-### Project Structure
-- `main.rs`: Entry point and application loop
-- `types.rs`: Shared data structures
-- `window.rs`: Window management and input handling
-- `algorithm.rs`: Chaikin's algorithm implementation
-- `renderer.rs`: Rendering and animation
-
-## Compilation and Execution
-
+**Debug Build**
 ```bash
-# Build in debug mode
 cargo build
-
-# Build in release mode for better performance
-cargo build --release
-
-# Run the application
-cargo run
 ```
+
+**Release Build**
+```bash
+cargo build --release
+```
+
+## Performance Considerations
+
+- The algorithm is optimized for real-time interaction
+- Release builds provide better performance for smooth animations
