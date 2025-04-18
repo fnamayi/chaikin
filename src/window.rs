@@ -45,6 +45,7 @@ impl WindowManager {
             height,
             WindowOptions {
                 resize: true,
+                decorations:false,
                 ..WindowOptions::default()
             },
         ).unwrap_or_else(|e| panic!("Failed to create window: {}", e));
